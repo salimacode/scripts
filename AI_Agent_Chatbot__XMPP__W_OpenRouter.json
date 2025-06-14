@@ -1,0 +1,115 @@
+{
+  "name": "AI Agent Chatbot (XMPP) vía OpenRouter",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "pregunta-ia",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "f358b4b3-07ed-485c-91f8-2083dc63b548",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        -80,
+        0
+      ],
+      "webhookId": "4f6850e6-8bff-4590-ae8e-f46900800d38"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "5f013380-f443-4f9b-bdb2-cb3ae0e4dca6",
+      "name": "Responder al Bot",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        620,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.9,
+      "position": [
+        220,
+        0
+      ],
+      "id": "59f595e5-6ca4-451f-9ee6-b98d0be24fda",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "model": "deepseek/deepseek-chat-v3-0324:free",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenRouter",
+      "typeVersion": 1,
+      "position": [
+        160,
+        200
+      ],
+      "id": "62e39017-f4e0-4b21-b685-c42cca5bafab",
+      "name": "deepseeek-chat-v3",
+      "credentials": {
+        "openRouterApi": {
+          "id": "PNWLdkjFjAoax2Rn",
+          "name": "OpenRouter account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Responder al Bot",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "deepseeek-chat-v3": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "00848ce5-ef2e-4239-901a-f110307d4d4a",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "650d8ada028b7f9cb2df7939916ca6f637ae9dca2282f2ffe22904f37e02e638"
+  },
+  "id": "36jPUon52FpuwsVc",
+  "tags": []
+}
