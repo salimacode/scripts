@@ -1,0 +1,175 @@
+﻿step 1
+
+# Actualizar los paquetes del sistema 
+sudo yum update -y
+
+
+# Instalar el paquete más reciente de Docker Community Edition (CE) 
+sudo amazon-linux-extras install docker -y
+
+
+# Iniciar servicio Docker 
+sudo systemctl start docker
+
+
+#  Habilitar Docker para iniciar automáticamente al arranque
+sudo systemctl enable docker
+
+
+#  Agregar el usuario ec2-user al grupo docker para ejecutar comandos sin sudo
+sudo usermod -a -G docker ec2-user
+
+
+# Aplicar los cambios de grupo en la sesión actual sin cerrar sesión
+newgrp docker
+
+
+
+
+step 2
+
+
+# Instalar Nginx desde Amazon Linux Extras
+sudo amazon-linux-extras install nginx1
+
+
+# Iniciar y habilitar Nginx 
+sudo systemctl start nginx
+sudo systemctl enable nginx
+
+
+
+
+step 3
+
+
+# Instalar el repositorio EPEL 
+sudo amazon-linux-extras install epel
+
+
+# Instalar certbot  
+sudo yum install -y certbot python2-certbot-nginx
+
+
+
+
+step4 
+
+
+# Crear configuración Nginx para n8n  
+sudo bash -c 'cat > /etc/nginx/conf.d/n8n.conf << EOL
+server {
+    listen 80;
+    server_name n8n.proyecto.asir2.lpdvg.es;  
+
+
+    location / {
+        proxy_pass http://localhost:5678;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade \$http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_set_header Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto \$scheme;
+    }
+}
+EOL'
+
+
+# Configuración Nginx   
+sudo nginx -t
+
+
+# Reiniciar Nginx para aplicar los cambio  
+sudo systemctl restart nginx
+
+
+
+
+step 5
+
+
+# Obtener certificado SSL   
+sudo certbot --nginx -d n8n.proyecto.asir2.lpdvg.es
+
+
+# Seguir las instrucciones interactivas de Certbot
+
+
+
+
+step 6
+
+
+# Crear volumen para persistencia de datos
+docker volume create n8n_data
+
+
+# Generar clave de encriptación segura
+ENCRYPTION_KEY=$(openssl rand -hex 32)
+
+
+# Ejecutar contenedor de n8n
+docker run -d \
+  --name n8n \
+  --restart always \
+  -p 5678:5678 \
+  -e N8N_HOST=n8n.proyecto.asir2.lpdvg.es \
+  -e N8N_PORT=5678 \
+  -e N8N_PROTOCOL=https \
+  -e NODE_ENV=production \
+  -e N8N_ENCRYPTION_KEY=$ENCRYPTION_KEY \
+  -e WEBHOOK_URL=https://n8n.proyecto.asir2.lpdvg.es/ \
+  --volume n8n_data:/home/node/.n8n \
+  n8nio/n8n
+
+
+
+
+step 7
+
+
+# Agregar tarea cron para renovación automática de certificados SSL   
+echo "0 3 * * * root /usr/bin/certbot renew --quiet" | sudo tee -a /etc/crontab
+
+
+# Verificar que la tarea cron se añadió  
+sudo cat /etc/crontab | grep certbot
+
+
+step 8
+
+
+# Crear archivo de servicio para systemd
+sudo bash -c 'cat > /etc/systemd/system/n8n-docker.service << EOL
+[Unit]
+Description=n8n Docker Container
+After=docker.service
+Requires=docker.service
+
+
+[Service]
+Type=simple
+Restart=always
+ExecStart=/usr/bin/docker start -a n8n
+ExecStop=/usr/bin/docker stop n8n
+
+
+[Install]
+WantedBy=multi-user.target
+EOL'
+
+
+# Recargar systemd y habilitar el servicio
+sudo systemctl daemon-reload
+sudo systemctl enable n8n-docker.service
+sudo systemctl start n8n-docker.service
+
+
+
+
+
+
+# Verificar que el contenedor esté activo
+docker ps
